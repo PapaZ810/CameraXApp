@@ -6,34 +6,27 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
+import android.util.Log
+import android.widget.Toast
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.Companion.isPhotoPickerAvailable
 import androidx.appcompat.app.AppCompatActivity
+import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.Preview
+import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.video.Recorder
 import androidx.camera.video.Recording
 import androidx.camera.video.VideoCapture
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import edu.westminsteru.capstone.cameraxapp.databinding.ActivityMainBinding
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
-import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.core.Preview
-import androidx.camera.core.CameraSelector
-import android.util.Log
-import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.ImageCaptureException
-import androidx.camera.core.ImageProxy
-import androidx.camera.video.FallbackStrategy
-import androidx.camera.video.MediaStoreOutputOptions
-import androidx.camera.video.Quality
-import androidx.camera.video.QualitySelector
-import androidx.camera.video.VideoRecordEvent
-import androidx.core.content.PermissionChecker
-import java.nio.ByteBuffer
+import java.security.AccessController.getContext
 import java.text.SimpleDateFormat
 import java.util.Locale
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 typealias LumaListener = (luma: Double) -> Unit
 
@@ -81,8 +74,24 @@ class MainActivity : AppCompatActivity() {
 
         // Set up the listeners for take photo and video capture buttons
         viewBinding.imageCaptureButton.setOnClickListener { takePhoto() }
+        viewBinding.uploadButton.setOnClickListener { uploadPhoto() }
 
         cameraExecutor = Executors.newSingleThreadExecutor()
+    }
+
+    private fun uploadPhoto() {
+        val pickMultipleMedia =
+            registerForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(5)) { uris ->
+                // Callback is invoked after the user selects media items or closes the
+                // photo picker.
+                if (uris.isNotEmpty()) {
+                    Log.d("PhotoPicker", "Number of items selected: ${uris.size}")
+                } else {
+                    Log.d("PhotoPicker", "No media selected")
+                }
+            }
+
+        pickMultipleMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
     }
 
     private fun takePhoto() {
@@ -182,10 +191,11 @@ class MainActivity : AppCompatActivity() {
         private val REQUIRED_PERMISSIONS =
             mutableListOf (
                 Manifest.permission.CAMERA,
-                Manifest.permission.RECORD_AUDIO
+                Manifest.permission.RECORD_AUDIO,
             ).apply {
                 if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
                     add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    add(Manifest.permission.READ_EXTERNAL_STORAGE)
                 }
             }.toTypedArray()
     }
