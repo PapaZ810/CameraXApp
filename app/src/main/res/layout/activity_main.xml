@@ -24,6 +24,7 @@
         android:elevation="2dp"
         android:text="@string/take_photo"
         android:textColor="@color/black"
+        android:textColorHighlight="@color/light_mint"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@id/vertical_centerline"
         app:layout_constraintLeft_toLeftOf="parent" />
@@ -37,6 +38,8 @@
         android:elevation="2dp"
         android:text="@string/upload_photo"
         android:textColor="@color/black"
+        android:textColorHighlight="@color/light_mint"
+        android:textColorHint="@color/cardview_dark_background"
         android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

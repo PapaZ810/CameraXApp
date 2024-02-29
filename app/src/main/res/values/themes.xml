@@ -3,6 +3,7 @@
     <style name="Base.Theme.CameraXApp" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your light theme here. -->
         <item name="colorPrimary">@color/mint</item>
+        <item name="colorPrimaryVariant">@color/light_mint</item>
     </style>
 
     <style name="Theme.CameraXApp" parent="Base.Theme.CameraXApp" />

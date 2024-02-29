@@ -3,4 +3,5 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="mint">#FF69CF97</color>
+    <color name="light_mint">#FFA3E4B7</color>
 </resources>
