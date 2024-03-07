@@ -22,6 +22,7 @@ import androidx.camera.video.Recording
 import androidx.camera.video.VideoCapture
 import androidx.core.content.ContextCompat
 import edu.westminsteru.capstone.cameraxapp.databinding.ActivityMainBinding
+import java.io.File
 import java.security.AccessController.getContext
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -80,18 +81,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun uploadPhoto() {
-        val pickMultipleMedia =
-            registerForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(5)) { uris ->
-                // Callback is invoked after the user selects media items or closes the
-                // photo picker.
-                if (uris.isNotEmpty()) {
-                    Log.d("PhotoPicker", "Number of items selected: ${uris.size}")
-                } else {
-                    Log.d("PhotoPicker", "No media selected")
-                }
-            }
-
-        pickMultipleMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
+        val url = "http://localhost:5000/api/upload"
+        val file = File("testing.png")
+        // val request = todo
     }
 
     private fun takePhoto() {
