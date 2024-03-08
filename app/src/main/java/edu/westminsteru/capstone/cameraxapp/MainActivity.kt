@@ -23,6 +23,9 @@ import androidx.camera.video.VideoCapture
 import androidx.core.content.ContextCompat
 import edu.westminsteru.capstone.cameraxapp.databinding.ActivityMainBinding
 import java.io.File
+import java.io.OutputStream
+import java.net.HttpURLConnection
+import java.net.URL
 import java.security.AccessController.getContext
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -81,9 +84,23 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun uploadPhoto() {
-        val url = "http://localhost:5000/api/upload"
+        val url = URL("http://localhost:5000/api/upload")
         val file = File("testing.png")
-        // val request = todo
+        val urlConnection = url.openConnection() as HttpURLConnection
+        urlConnection.doOutput = true
+        urlConnection.useCaches = true
+        urlConnection.requestMethod = "POST"
+        urlConnection.setRequestProperty("Content-Type", "image/png")
+        urlConnection.setRequestProperty("Connection", "Keep-Alive")
+        urlConnection.setRequestProperty("Cache-Control", "no-cache")
+
+        try {
+            val os: OutputStream = urlConnection.outputStream
+            os.write(file.readBytes())
+            Toast.makeText(baseContext, "Uploaded photo", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun takePhoto() {
