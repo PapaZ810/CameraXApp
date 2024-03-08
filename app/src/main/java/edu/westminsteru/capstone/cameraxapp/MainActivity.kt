@@ -5,6 +5,7 @@ import android.content.ContentValues
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Looper
 import android.provider.MediaStore
 import android.util.Log
 import android.widget.Toast
@@ -94,13 +95,21 @@ class MainActivity : AppCompatActivity() {
         urlConnection.setRequestProperty("Connection", "Keep-Alive")
         urlConnection.setRequestProperty("Cache-Control", "no-cache")
 
-        try {
-            val os: OutputStream = urlConnection.outputStream
-            os.write(file.readBytes())
-            Toast.makeText(baseContext, "Uploaded photo", Toast.LENGTH_SHORT).show()
-        } catch (e: Exception) {
-            e.printStackTrace()
+        val t = Thread {
+            Looper.prepare()
+            Toast.makeText(baseContext, "runnning", Toast.LENGTH_SHORT).show()
+
+            try {
+                val os: OutputStream = urlConnection.outputStream
+                os.write(file.readBytes())
+                Toast.makeText(baseContext, "Uploaded photo", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
+
+        t.start()
+
     }
 
     private fun takePhoto() {
