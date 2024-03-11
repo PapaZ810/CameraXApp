@@ -5,6 +5,7 @@ import android.content.ContentValues
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
 import android.util.Log
@@ -23,6 +24,7 @@ import androidx.camera.video.Recording
 import androidx.camera.video.VideoCapture
 import androidx.core.content.ContextCompat
 import edu.westminsteru.capstone.cameraxapp.databinding.ActivityMainBinding
+import kotlinx.coroutines.delay
 import java.io.File
 import java.io.OutputStream
 import java.net.HttpURLConnection
@@ -78,7 +80,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Set up the listeners for take photo and video capture buttons
-        viewBinding.imageCaptureButton.setOnClickListener { takePhoto() }
+        viewBinding.imageCaptureButton.setOnClickListener { takePhotoMultiple() }
         viewBinding.uploadButton.setOnClickListener { uploadPhoto() }
 
         cameraExecutor = Executors.newSingleThreadExecutor()
@@ -110,6 +112,17 @@ class MainActivity : AppCompatActivity() {
 
         t.start()
 
+    }
+
+    private fun takePhotoMultiple() {
+        val t = Thread {
+            Looper.prepare()
+            for (i in 1..5) {
+                takePhoto()
+                Thread.sleep(5000)
+            }
+        }
+        t.start()
     }
 
     private fun takePhoto() {
