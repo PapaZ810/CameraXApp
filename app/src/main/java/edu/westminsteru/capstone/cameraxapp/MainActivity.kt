@@ -85,7 +85,7 @@ class MainActivity : AppCompatActivity() {
         viewBinding.uploadButton.setOnClickListener { uploadPhoto() }
         viewBinding.interval.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-                viewBinding.intervalText.text = "Interval: $progress"
+//                viewBinding.intervalText.text = "Interval: $progress"
             }
             override fun onStartTrackingTouch(seekBar: SeekBar) {}
             override fun onStopTrackingTouch(seekBar: SeekBar) {}

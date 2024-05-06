@@ -8,18 +8,16 @@
 
     <SeekBar
         android:id="@+id/interval"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_marginTop="50dp"
-        android:rotation="0"
-        android:rotationX="0"
-        android:rotationY="0"
-        android:visibility="visible"
-        app:layout_constraintBottom_toTopOf="@+id/vertical_centerline"
-        app:layout_constraintEnd_toStartOf="@+id/vertical_centerline"
-        app:layout_constraintStart_toStartOf="@+id/vertical_centerline"
-        app:layout_constraintTop_toTopOf="parent"
-        tools:visibility="visible" />
+        style="@style/Widget.AppCompat.SeekBar.Discrete"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:max="10"
+        android:progress="3"
+        android:thumb="@android:drawable/bottom_bar"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <androidx.camera.view.PreviewView
         android:id="@+id/viewFinder"
@@ -69,7 +67,6 @@
         android:layout_marginBottom="731dp"
         android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintGuide_begin="206dp"
-        app:layout_constraintTop_toBottomOf="@+id/interval" />
+        app:layout_constraintGuide_begin="206dp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
