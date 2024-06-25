@@ -95,7 +95,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun uploadPhoto() {
-        val url = URL("http://localhost:5000/api/upload")
+        val url = URL("http://192.168.86.153:8000/upload")
         val file = File("testing.png")
         val urlConnection = url.openConnection() as HttpURLConnection
         urlConnection.doOutput = true
@@ -104,6 +104,7 @@ class MainActivity : AppCompatActivity() {
         urlConnection.setRequestProperty("Content-Type", "image/png")
         urlConnection.setRequestProperty("Connection", "Keep-Alive")
         urlConnection.setRequestProperty("Cache-Control", "no-cache")
+        //urlConnection.setRequestProperty("Cookie", "csrftoken=bSef9ubKs1CGif4Wf7m06O2bKh0XImer;")
 
         val t = Thread {
             Looper.prepare()
