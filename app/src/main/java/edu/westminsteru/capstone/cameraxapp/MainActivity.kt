@@ -1,19 +1,17 @@
 package edu.westminsteru.capstone.cameraxapp
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
 import android.util.Log
 import android.widget.SeekBar
 import android.widget.Toast
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.Companion.isPhotoPickerAvailable
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
@@ -25,12 +23,10 @@ import androidx.camera.video.Recording
 import androidx.camera.video.VideoCapture
 import androidx.core.content.ContextCompat
 import edu.westminsteru.capstone.cameraxapp.databinding.ActivityMainBinding
-import kotlinx.coroutines.delay
 import java.io.File
 import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
-import java.security.AccessController.getContext
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.concurrent.ExecutorService
@@ -94,9 +90,10 @@ class MainActivity : AppCompatActivity() {
         cameraExecutor = Executors.newSingleThreadExecutor()
     }
 
+    @SuppressLint("ResourceType")
     private fun uploadPhoto() {
         val url = URL("http://192.168.86.153:8000/upload")
-        val file = File("testing.png")
+        val file = resources.openRawResourceFd(R.drawable.testing)
         val urlConnection = url.openConnection() as HttpURLConnection
         urlConnection.doOutput = true
         urlConnection.useCaches = true
@@ -111,8 +108,8 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(baseContext, "runnning", Toast.LENGTH_SHORT).show()
 
             try {
-                val os: OutputStream = urlConnection.outputStream
-                os.write(file.readBytes())
+                val stream: OutputStream = urlConnection.outputStream
+                stream.write(file.createInputStream().readBytes())
                 Toast.makeText(baseContext, "Uploaded photo", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 e.printStackTrace()
