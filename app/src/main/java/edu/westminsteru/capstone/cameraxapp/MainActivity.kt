@@ -24,6 +24,7 @@ import androidx.camera.video.VideoCapture
 import androidx.core.content.ContextCompat
 import edu.westminsteru.capstone.cameraxapp.databinding.ActivityMainBinding
 import java.io.File
+import java.io.InputStream
 import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
@@ -92,7 +93,7 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("ResourceType")
     private fun uploadPhoto() {
-        val url = URL("http://192.168.86.153:8000/upload")
+        val url = URL("http://192.168.50.160:8000/upload/")
         val file = resources.openRawResourceFd(R.drawable.testing)
         val urlConnection = url.openConnection() as HttpURLConnection
         urlConnection.doOutput = true
@@ -109,7 +110,10 @@ class MainActivity : AppCompatActivity() {
 
             try {
                 val stream: OutputStream = urlConnection.outputStream
+                val input: InputStream = urlConnection.inputStream
                 stream.write(file.createInputStream().readBytes())
+                stream.close()
+                input.close()
                 Toast.makeText(baseContext, "Uploaded photo", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 e.printStackTrace()
