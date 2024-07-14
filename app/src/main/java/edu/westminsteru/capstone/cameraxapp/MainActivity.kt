@@ -23,10 +23,14 @@ import androidx.camera.video.Recording
 import androidx.camera.video.VideoCapture
 import androidx.core.content.ContextCompat
 import edu.westminsteru.capstone.cameraxapp.databinding.ActivityMainBinding
-import java.io.File
+import java.io.BufferedOutputStream
 import java.io.InputStream
 import java.io.OutputStream
+import java.net.Authenticator
+import java.net.CookieHandler
+import java.net.CookieManager
 import java.net.HttpURLConnection
+import java.net.PasswordAuthentication
 import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -93,34 +97,59 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("ResourceType")
     private fun uploadPhoto() {
-        val url = URL("http://192.168.50.160:8000/upload/")
+        CookieHandler.setDefault(CookieManager())
+
+        Authenticator.setDefault(object : Authenticator() {
+            override fun getPasswordAuthentication(): PasswordAuthentication {
+                return PasswordAuthentication("zoe", "password".toCharArray())
+            }
+        })
+
+        val urlConnect = URL("http://192.168.86.153:8000/upload/").openConnection()
+                as HttpURLConnection
+        urlConnect.useCaches = true
+        urlConnect.setRequestProperty("Connection", "Keep-Alive")
+
+        val url = URL("http://192.168.86.153:8000/upload/")
         val file = resources.openRawResourceFd(R.drawable.testing)
         val urlConnection = url.openConnection() as HttpURLConnection
         urlConnection.doOutput = true
         urlConnection.useCaches = true
-        urlConnection.requestMethod = "POST"
+        urlConnection.setRequestMethod("POST")
         urlConnection.setRequestProperty("Content-Type", "image/png")
         urlConnection.setRequestProperty("Connection", "Keep-Alive")
-        urlConnection.setRequestProperty("Cache-Control", "no-cache")
-        //urlConnection.setRequestProperty("Cookie", "csrftoken=bSef9ubKs1CGif4Wf7m06O2bKh0XImer;")
 
-        val t = Thread {
+        val thread = Thread {
             Looper.prepare()
-            Toast.makeText(baseContext, "runnning", Toast.LENGTH_SHORT).show()
+//            Toast.makeText(baseContext, "running", Toast.LENGTH_SHORT).show()
 
             try {
+//                Authenticator.getPasswordAuthentication()
+                urlConnect.getContent()
+                CookieManager().cookieStore.cookies.forEach {
+                    Log.d("cookie", it.toString())
+                    if (it.name.equals("csrftoken")) {
+                        urlConnect.setRequestProperty("Cookie", "csrftoken=${it.value}")
+                    }
+                }
+                val inget: InputStream = urlConnect.inputStream
+                inget.close()
+                urlConnect.disconnect()
+                Toast.makeText(baseContext, "Got Cookie?", Toast.LENGTH_SHORT).show()
+
                 val stream: OutputStream = urlConnection.outputStream
                 val input: InputStream = urlConnection.inputStream
                 stream.write(file.createInputStream().readBytes())
                 stream.close()
                 input.close()
+                urlConnection.disconnect()
                 Toast.makeText(baseContext, "Uploaded photo", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
 
-        t.start()
+        thread.start()
     }
 
     private fun takePhotoMultiple() {
