@@ -105,13 +105,12 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
-        val urlConnect = URL("http://192.168.86.153:8000/upload/").openConnection()
-                as HttpURLConnection
-        urlConnect.useCaches = true
-        urlConnect.setRequestProperty("Connection", "Keep-Alive")
+//        val urlConnect = URL("http://192.168.86.153:8000/upload/").openConnection()
+//                as HttpURLConnection
+//        urlConnect.useCaches = true
+//        urlConnect.setRequestProperty("Connection", "Keep-Alive")
 
         val url = URL("http://192.168.86.153:8000/upload/")
-        val file = resources.openRawResourceFd(R.drawable.testing)
         val urlConnection = url.openConnection() as HttpURLConnection
         urlConnection.doOutput = true
         urlConnection.useCaches = true
@@ -125,24 +124,32 @@ class MainActivity : AppCompatActivity() {
 
             try {
 //                Authenticator.getPasswordAuthentication()
-                urlConnect.getContent()
+//                urlConnect.getContent()
+//                CookieManager().cookieStore.cookies.forEach {
+//                    Log.d(TAG, "cookie: $it")
+//                    if (it.name.equals("csrftoken")) {
+//                        urlConnect.setRequestProperty("Cookie", "csrftoken=${it.value}")
+//                        urlConnection.setRequestProperty("Cookie", "csrftoken=${it.value}")
+//                    }
+//                }
+//                val inget: InputStream = urlConnect.inputStream
+//                inget.close()
+//                urlConnect.disconnect()
+                val file = resources.openRawResourceFd(R.drawable.testing)
+
+                urlConnection.connect()
+                val stream = BufferedOutputStream(urlConnection.outputStream)
+                val input: InputStream = urlConnection.inputStream
                 CookieManager().cookieStore.cookies.forEach {
-                    Log.d("cookie", it.toString())
+                    Log.d(TAG, "cookie: $it")
                     if (it.name.equals("csrftoken")) {
-                        urlConnect.setRequestProperty("Cookie", "csrftoken=${it.value}")
+                        urlConnection.setRequestProperty("Cookie", "csrftoken=${it.value}")
                     }
                 }
-                val inget: InputStream = urlConnect.inputStream
-                inget.close()
-                urlConnect.disconnect()
-                Toast.makeText(baseContext, "Got Cookie?", Toast.LENGTH_SHORT).show()
-
-                val stream: OutputStream = urlConnection.outputStream
-                val input: InputStream = urlConnection.inputStream
                 stream.write(file.createInputStream().readBytes())
                 stream.close()
                 input.close()
-                urlConnection.disconnect()
+                file.close()
                 Toast.makeText(baseContext, "Uploaded photo", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -150,6 +157,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         thread.start()
+        thread.join()
+        urlConnection.disconnect()
     }
 
     private fun takePhotoMultiple() {
