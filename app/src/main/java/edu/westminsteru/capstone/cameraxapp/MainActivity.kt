@@ -138,11 +138,11 @@ class MainActivity : AppCompatActivity() {
                 val file = resources.openRawResourceFd(R.drawable.testing)
 
                 urlConnection.connect()
-                val stream = BufferedOutputStream(urlConnection.outputStream)
+                val stream: OutputStream = urlConnection.outputStream
                 val input: InputStream = urlConnection.inputStream
                 CookieManager().cookieStore.cookies.forEach {
                     Log.d(TAG, "cookie: $it")
-                    if (it.name.equals("csrftoken")) {
+                    if (it.name.contains("csrftoken")) {
                         urlConnection.setRequestProperty("Cookie", "csrftoken=${it.value}")
                     }
                 }
