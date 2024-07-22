@@ -23,7 +23,6 @@ import androidx.camera.video.Recording
 import androidx.camera.video.VideoCapture
 import androidx.core.content.ContextCompat
 import edu.westminsteru.capstone.cameraxapp.databinding.ActivityMainBinding
-import java.io.BufferedOutputStream
 import java.io.InputStream
 import java.io.OutputStream
 import java.net.Authenticator
@@ -95,6 +94,7 @@ class MainActivity : AppCompatActivity() {
         cameraExecutor = Executors.newSingleThreadExecutor()
     }
 
+
     @SuppressLint("ResourceType")
     private fun uploadPhoto() {
         CookieHandler.setDefault(CookieManager())
@@ -113,7 +113,8 @@ class MainActivity : AppCompatActivity() {
         val url = URL("http://192.168.86.153:8000/upload/")
         val urlConnection = url.openConnection() as HttpURLConnection
         urlConnection.doOutput = true
-        urlConnection.useCaches = true
+        urlConnection.doInput = true
+        urlConnection.useCaches = false
         urlConnection.setRequestMethod("POST")
         urlConnection.setRequestProperty("Content-Type", "image/png")
         urlConnection.setRequestProperty("Connection", "Keep-Alive")
@@ -139,7 +140,6 @@ class MainActivity : AppCompatActivity() {
 
                 urlConnection.connect()
                 val stream: OutputStream = urlConnection.outputStream
-                val input: InputStream = urlConnection.inputStream
                 CookieManager().cookieStore.cookies.forEach {
                     Log.d(TAG, "cookie: $it")
                     if (it.name.contains("csrftoken")) {
@@ -147,7 +147,13 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 stream.write(file.createInputStream().readBytes())
+                stream.flush()
                 stream.close()
+                val input: InputStream = urlConnection.inputStream
+                print("output:")
+                for (i in input.readBytes()) {
+                    print(i)
+                }
                 input.close()
                 file.close()
                 Toast.makeText(baseContext, "Uploaded photo", Toast.LENGTH_SHORT).show()
