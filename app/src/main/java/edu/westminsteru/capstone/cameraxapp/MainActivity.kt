@@ -23,13 +23,11 @@ import androidx.camera.video.Recording
 import androidx.camera.video.VideoCapture
 import androidx.core.content.ContextCompat
 import edu.westminsteru.capstone.cameraxapp.databinding.ActivityMainBinding
-import java.io.InputStream
+import java.io.InputStreamReader
 import java.io.OutputStream
-import java.net.Authenticator
 import java.net.CookieHandler
 import java.net.CookieManager
 import java.net.HttpURLConnection
-import java.net.PasswordAuthentication
 import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -98,17 +96,20 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("ResourceType")
     private fun uploadPhoto() {
         CookieHandler.setDefault(CookieManager())
+        val BOUNDARY = System.currentTimeMillis().toString()
 
-        Authenticator.setDefault(object : Authenticator() {
-            override fun getPasswordAuthentication(): PasswordAuthentication {
-                return PasswordAuthentication("zoe", "password".toCharArray())
-            }
-        })
+        val getCSRF = URL("http://192.168.86.153:8000/csrf/").openConnection()
+                as HttpURLConnection
+        getCSRF.doInput = true
+        getCSRF.setRequestProperty("Connection", "Keep-Alive")
 
-//        val urlConnect = URL("http://192.168.86.153:8000/upload/").openConnection()
-//                as HttpURLConnection
-//        urlConnect.useCaches = true
-//        urlConnect.setRequestProperty("Connection", "Keep-Alive")
+        val loginConnection = URL("http://192.168.86.153:8000/").openConnection()
+                as HttpURLConnection
+        loginConnection.doOutput = true
+        loginConnection.doInput = true
+        loginConnection.useCaches = false
+        loginConnection.setRequestMethod("POST")
+        loginConnection.setRequestProperty("Connection", "Keep-Alive")
 
         val url = URL("http://192.168.86.153:8000/upload/")
         val urlConnection = url.openConnection() as HttpURLConnection
@@ -116,7 +117,7 @@ class MainActivity : AppCompatActivity() {
         urlConnection.doInput = true
         urlConnection.useCaches = false
         urlConnection.setRequestMethod("POST")
-        urlConnection.setRequestProperty("Content-Type", "image/png")
+        urlConnection.setRequestProperty("Content-Type", "multipart/form-data;boundary=${BOUNDARY}")
         urlConnection.setRequestProperty("Connection", "Keep-Alive")
 
         val thread = Thread {
@@ -124,47 +125,83 @@ class MainActivity : AppCompatActivity() {
 //            Toast.makeText(baseContext, "running", Toast.LENGTH_SHORT).show()
 
             try {
-//                Authenticator.getPasswordAuthentication()
-//                urlConnect.getContent()
+                getCSRF.connect()
+                val out = InputStreamReader(getCSRF.inputStream, "UTF-8")
+                var csrfToken = ""
+                for (i in out.readLines()) {
+                    if (i.lowercase().contains("csrftoken")) {
+                        Log.d(TAG, "Got csrftoken: $i")
+                        csrfToken = i.substring(i.indexOf(":") + 3, i.length - 2)
+//                        loginConnection.setRequestProperty("csrftoken", csrfToken)
+//                        urlConnection.setRequestProperty("csrftoken", csrfToken)
+                    }
+                }
+                out.close()
+                getCSRF.disconnect()
+
+                Log.d(TAG, "CSRF Token: $csrfToken")
+
+                loginConnection.connect()
+                val login: OutputStream = loginConnection.outputStream
+                login.write("csrfmiddlewaretoken=${csrfToken}&username=zoe&password=password".toByteArray())
+                login.flush()
 //                CookieManager().cookieStore.cookies.forEach {
 //                    Log.d(TAG, "cookie: $it")
 //                    if (it.name.equals("csrftoken")) {
-//                        urlConnect.setRequestProperty("Cookie", "csrftoken=${it.value}")
+//                        loginConnection.setRequestProperty("Cookie", "csrftoken=${it.value}")
 //                        urlConnection.setRequestProperty("Cookie", "csrftoken=${it.value}")
+//                    } else if (it.name.equals("sessionid")) {
+//                        loginConnection.setRequestProperty("Cookie", "sessionid=${it.value}")
+//                        urlConnection.setRequestProperty("Cookie", "sessionid=${it.value}")
 //                    }
 //                }
-//                val inget: InputStream = urlConnect.inputStream
-//                inget.close()
-//                urlConnect.disconnect()
+                login.close()
+                val loginStream = InputStreamReader(loginConnection.inputStream, "UTF-8")
+                Log.d(TAG, "Login Output:")
+                for (i in loginStream.readLines()) {
+                    Log.d(TAG, i)
+                }
+                loginStream.close()
+                loginConnection.disconnect()
+
+
                 val file = resources.openRawResourceFd(R.drawable.testing)
 
                 urlConnection.connect()
                 val stream: OutputStream = urlConnection.outputStream
-                CookieManager().cookieStore.cookies.forEach {
-                    Log.d(TAG, "cookie: $it")
-                    if (it.name.contains("csrftoken")) {
-                        urlConnection.setRequestProperty("Cookie", "csrftoken=${it.value}")
-                    }
-                }
+                stream.write("--${BOUNDARY}\r\n".toByteArray())
+                stream.write("Content-Disposition: form-data; name=\"csrfmiddlewaretoken\"\r\n\r\n"
+                    .toByteArray())
+                stream.write("${csrfToken}\r\n".toByteArray())
+                stream.write("--${BOUNDARY}\r\n".toByteArray())
+                stream.write("Content-Disposition: form-data; name=\"user\"\r\n\r\n".toByteArray())
+                stream.write("1\r\n".toByteArray())
+                stream.write("--${BOUNDARY}\r\n".toByteArray())
+                stream.write(("Content-Disposition: form-data; name=\"photo\"; " +
+                        "filename=\"testing.jpg" + "\"\r\n\r\n").toByteArray())
                 stream.write(file.createInputStream().readBytes())
+                stream.write("\r\n".toByteArray())
+                stream.write("--${BOUNDARY}--\r\n".toByteArray())
                 stream.flush()
                 stream.close()
-                val input: InputStream = urlConnection.inputStream
+                val input = InputStreamReader(urlConnection.inputStream, "UTF-8")
                 print("output:")
-                for (i in input.readBytes()) {
-                    print(i)
+                for (i in input.readLines()) {
+                    Log.d(TAG, i)
                 }
                 input.close()
                 file.close()
                 Toast.makeText(baseContext, "Uploaded photo", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 e.printStackTrace()
+            } finally {
+                loginConnection.disconnect()
+                urlConnection.disconnect()
             }
         }
 
         thread.start()
         thread.join()
-        urlConnection.disconnect()
     }
 
     private fun takePhotoMultiple() {
@@ -269,7 +306,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     companion object {
-        private const val TAG = "CameraXApp"
+        private val TAG: String = MainActivity::class.java.simpleName
         private const val FILENAME_FORMAT = "yyyy-MM-dd-HH-mm-ss-SSS"
         private val REQUIRED_PERMISSIONS =
             mutableListOf (
