@@ -46,6 +46,8 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var cameraExecutor: ExecutorService
 
+    private val numPictures = 0
+
     private val activityResultLauncher =
         registerForActivityResult(
             ActivityResultContracts.RequestMultiplePermissions())
@@ -90,13 +92,28 @@ class MainActivity : AppCompatActivity() {
         })
 
         cameraExecutor = Executors.newSingleThreadExecutor()
+
+        val t = Thread {
+            val getInstructions = URL("http://192.168.153:8000/instructions/").openConnection()
+                    as HttpURLConnection
+            getInstructions.doInput = true
+            getInstructions.setRequestProperty("Connection", "Keep-Alive")
+
+            getInstructions.connect()
+
+            while (true) {
+                
+            }
+        }
+
+        t.start()
     }
 
 
     @SuppressLint("ResourceType")
     private fun uploadPhoto() {
         CookieHandler.setDefault(CookieManager())
-        val BOUNDARY = System.currentTimeMillis().toString()
+        val BOUNDARY = "---------------------------" + System.currentTimeMillis()
 
         val getCSRF = URL("http://192.168.86.153:8000/csrf/").openConnection()
                 as HttpURLConnection
@@ -122,7 +139,6 @@ class MainActivity : AppCompatActivity() {
 
         val thread = Thread {
             Looper.prepare()
-//            Toast.makeText(baseContext, "running", Toast.LENGTH_SHORT).show()
 
             try {
                 getCSRF.connect()
@@ -145,22 +161,20 @@ class MainActivity : AppCompatActivity() {
                 val login: OutputStream = loginConnection.outputStream
                 login.write("csrfmiddlewaretoken=${csrfToken}&username=zoe&password=password".toByteArray())
                 login.flush()
-//                CookieManager().cookieStore.cookies.forEach {
-//                    Log.d(TAG, "cookie: $it")
-//                    if (it.name.equals("csrftoken")) {
-//                        loginConnection.setRequestProperty("Cookie", "csrftoken=${it.value}")
-//                        urlConnection.setRequestProperty("Cookie", "csrftoken=${it.value}")
-//                    } else if (it.name.equals("sessionid")) {
-//                        loginConnection.setRequestProperty("Cookie", "sessionid=${it.value}")
-//                        urlConnection.setRequestProperty("Cookie", "sessionid=${it.value}")
-//                    }
-//                }
+                CookieManager().cookieStore.cookies.forEach {
+                    Log.d(TAG, "cookie: $it")
+                    if (it.name.equals("csrftoken")) {
+                        urlConnection.setRequestProperty("Cookie", "csrftoken=${it.value}")
+                    } else if (it.name.equals("sessionid")) {
+                        urlConnection.setRequestProperty("Cookie", "sessionid=${it.value}")
+                    }
+                }
                 login.close()
                 val loginStream = InputStreamReader(loginConnection.inputStream, "UTF-8")
-                Log.d(TAG, "Login Output:")
-                for (i in loginStream.readLines()) {
-                    Log.d(TAG, i)
-                }
+//                Log.d(TAG, "Login Output:")
+//                for (i in loginStream.readLines()) {
+//                    Log.d(TAG, i)
+//                }
                 loginStream.close()
                 loginConnection.disconnect()
 
@@ -177,7 +191,7 @@ class MainActivity : AppCompatActivity() {
                 stream.write("Content-Disposition: form-data; name=\"user\"\r\n\r\n".toByteArray())
                 stream.write("1\r\n".toByteArray())
                 stream.write("--${BOUNDARY}\r\n".toByteArray())
-                stream.write(("Content-Disposition: form-data; name=\"photo\"; " +
+                stream.write(("Content-Disposition: form-data; name=\"image\"; " +
                         "filename=\"testing.jpg" + "\"\r\n\r\n").toByteArray())
                 stream.write(file.createInputStream().readBytes())
                 stream.write("\r\n".toByteArray())
@@ -185,10 +199,10 @@ class MainActivity : AppCompatActivity() {
                 stream.flush()
                 stream.close()
                 val input = InputStreamReader(urlConnection.inputStream, "UTF-8")
-                print("output:")
-                for (i in input.readLines()) {
-                    Log.d(TAG, i)
-                }
+//                print("output:")
+//                for (i in input.readLines()) {
+//                    Log.d(TAG, i)
+//                }
                 input.close()
                 file.close()
                 Toast.makeText(baseContext, "Uploaded photo", Toast.LENGTH_SHORT).show()
@@ -206,7 +220,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun takePhotoMultiple() {
         val t = Thread {
-            Looper.prepare()
             for (i in 1..5) {
                 takePhoto()
                 Thread.sleep(5000)
