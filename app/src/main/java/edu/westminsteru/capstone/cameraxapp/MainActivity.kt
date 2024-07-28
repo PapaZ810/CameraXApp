@@ -81,7 +81,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Set up the listeners for take photo and video capture buttons
-        viewBinding.imageCaptureButton.setOnClickListener { takePhotoMultiple() }
+        viewBinding.imageCaptureButton.setOnClickListener { startListening() }
         viewBinding.uploadButton.setOnClickListener { uploadPhoto() }
         viewBinding.interval.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
@@ -91,18 +91,89 @@ class MainActivity : AppCompatActivity() {
             override fun onStopTrackingTouch(seekBar: SeekBar) {}
         })
 
-        cameraExecutor = Executors.newSingleThreadExecutor()
+        cameraExecutor = Executors.newCachedThreadPool()
+    }
 
+
+    private fun startListening() {
         val t = Thread {
-            val getInstructions = URL("http://192.168.153:8000/instructions/").openConnection()
+            CookieHandler.setDefault(CookieManager())
+            val getCSRF = URL("http://192.168.86.153:8000/csrf/").openConnection()
+                    as HttpURLConnection
+            getCSRF.doInput = true
+            //getCSRF.requestMethod = "GET"
+            getCSRF.setRequestProperty("Connection", "Keep-Alive")
+
+            val loginConnection = URL("http://192.168.86.153:8000/").openConnection()
+                    as HttpURLConnection
+            loginConnection.doOutput = true
+            loginConnection.doInput = true
+            loginConnection.useCaches = false
+            loginConnection.setRequestMethod("POST")
+            loginConnection.setRequestProperty("Connection", "Keep-Alive")
+
+            val getInstructions = URL("http://192.168.86.153:8000/receive/").openConnection()
                     as HttpURLConnection
             getInstructions.doInput = true
+            getInstructions.requestMethod = "GET"
             getInstructions.setRequestProperty("Connection", "Keep-Alive")
 
-            getInstructions.connect()
+            try {
+                getCSRF.connect()
+                val out = InputStreamReader(getCSRF.inputStream, "UTF-8")
+                var csrfToken = ""
+                for (i in out.readLines()) {
+                    if (i.lowercase().contains("csrftoken")) {
+                        Log.d(TAG, "Got csrftoken: $i")
+                        csrfToken = i.substring(i.indexOf(":") + 3, i.length - 2)
+                    }
+                }
+                out.close()
+                getCSRF.disconnect()
 
-            while (true) {
-                
+                Log.d(TAG, "CSRF Token: $csrfToken")
+
+                loginConnection.connect()
+                val login: OutputStream = loginConnection.outputStream
+                login.write("csrfmiddlewaretoken=${csrfToken}&username=zoe&password=password".toByteArray())
+                login.flush()
+                CookieManager().cookieStore.cookies.forEach {
+                    Log.d(TAG, "cookie: $it")
+                    if (it.name.equals("csrftoken")) {
+                        getInstructions.setRequestProperty("Cookie", "csrftoken=${it.value}")
+                    } else if (it.name.equals("sessionid")) {
+                        getInstructions.setRequestProperty("Cookie", "sessionid=${it.value}")
+                    }
+                }
+                login.close()
+                val loginStream = InputStreamReader(loginConnection.inputStream, "UTF-8")
+//                Log.d(TAG, "Login Output:")
+//                for (i in loginStream.readLines()) {
+//                    Log.d(TAG, i)
+//                }
+                loginStream.close()
+                loginConnection.disconnect()
+
+                getInstructions.connect()
+                val receive = InputStreamReader(getInstructions.inputStream, "UTF-8")
+
+                Log.w(TAG, "Listening!")
+
+                receive.readLines().forEach { line ->
+                    when (line) {
+                        "photo" -> takePhoto()
+                        "upload" -> uploadPhoto()
+                        else -> {
+                            Log.d(TAG, "Unknown command: $line")
+                        }
+                    }
+                }
+                receive.close()
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Error: $e")
+            } finally {
+                getInstructions.disconnect()
             }
         }
 
@@ -205,7 +276,6 @@ class MainActivity : AppCompatActivity() {
 //                }
                 input.close()
                 file.close()
-                Toast.makeText(baseContext, "Uploaded photo", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
