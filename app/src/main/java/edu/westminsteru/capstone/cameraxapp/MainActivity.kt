@@ -6,12 +6,15 @@ import android.content.ContentValues
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.os.Looper
 import android.provider.MediaStore
+import android.provider.MediaStore.Images
 import android.util.Log
 import android.widget.SeekBar
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
@@ -23,16 +26,22 @@ import androidx.camera.video.Recording
 import androidx.camera.video.VideoCapture
 import androidx.core.content.ContextCompat
 import edu.westminsteru.capstone.cameraxapp.databinding.ActivityMainBinding
+import java.io.File
+import java.io.InputStream
 import java.io.InputStreamReader
 import java.io.OutputStream
 import java.net.CookieHandler
 import java.net.CookieManager
 import java.net.HttpURLConnection
 import java.net.URL
+import java.nio.file.Path
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import kotlin.io.path.Path
+import kotlin.io.path.name
+import kotlin.io.path.readBytes
 
 typealias LumaListener = (luma: Double) -> Unit
 
@@ -81,8 +90,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Set up the listeners for take photo and video capture buttons
-        viewBinding.imageCaptureButton.setOnClickListener { startListening() }
-        viewBinding.uploadButton.setOnClickListener { uploadPhoto() }
+        viewBinding.imageCaptureButton.setOnClickListener { takePhoto() }
+        viewBinding.uploadButton.setOnClickListener { startListening() }
         viewBinding.interval.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
 //                viewBinding.intervalText.text = "Interval: $progress"
@@ -162,7 +171,7 @@ class MainActivity : AppCompatActivity() {
                 receive.readLines().forEach { line ->
                     when (line) {
                         "photo" -> takePhoto()
-                        "upload" -> uploadPhoto()
+//                        "upload" -> uploadPhoto()
                         else -> {
                             Log.d(TAG, "Unknown command: $line")
                         }
@@ -182,7 +191,7 @@ class MainActivity : AppCompatActivity() {
 
 
     @SuppressLint("ResourceType")
-    private fun uploadPhoto() {
+    private fun uploadPhoto(photo: ByteArray) {
         CookieHandler.setDefault(CookieManager())
         val BOUNDARY = "---------------------------" + System.currentTimeMillis()
 
@@ -249,8 +258,7 @@ class MainActivity : AppCompatActivity() {
                 loginStream.close()
                 loginConnection.disconnect()
 
-
-                val file = resources.openRawResourceFd(R.drawable.testing)
+                    //val file = File(Environment.DIRECTORY_DCIM, path)
 
                 urlConnection.connect()
                 val stream: OutputStream = urlConnection.outputStream
@@ -263,8 +271,8 @@ class MainActivity : AppCompatActivity() {
                 stream.write("1\r\n".toByteArray())
                 stream.write("--${BOUNDARY}\r\n".toByteArray())
                 stream.write(("Content-Disposition: form-data; name=\"image\"; " +
-                        "filename=\"testing.jpg" + "\"\r\n\r\n").toByteArray())
-                stream.write(file.createInputStream().readBytes())
+                        "filename=\"" + photo.lastIndex + ".jpg\"\r\n\r\n").toByteArray()) //file.fileName
+                stream.write(photo.inputStream().readBytes())
                 stream.write("\r\n".toByteArray())
                 stream.write("--${BOUNDARY}--\r\n".toByteArray())
                 stream.flush()
@@ -275,7 +283,6 @@ class MainActivity : AppCompatActivity() {
 //                    Log.d(TAG, i)
 //                }
                 input.close()
-                file.close()
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
@@ -285,7 +292,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         thread.start()
-        thread.join()
     }
 
     private fun takePhotoMultiple() {
@@ -315,7 +321,7 @@ class MainActivity : AppCompatActivity() {
         // Create output options object which contains file + metadata
         val outputOptions = ImageCapture.OutputFileOptions
             .Builder(contentResolver,
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                Images.Media.EXTERNAL_CONTENT_URI,
                 contentValues)
             .build()
 
@@ -330,14 +336,16 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 override fun
-                        onImageSaved(output: ImageCapture.OutputFileResults){
+                        onImageSaved(output: ImageCapture.OutputFileResults) {
                     val msg = "Photo capture succeeded: ${output.savedUri}"
                     Toast.makeText(baseContext, msg, Toast.LENGTH_SHORT).show()
                     Log.d(TAG, msg)
+                    contentResolver.openInputStream(output.savedUri!!)?.use {
+                        uploadPhoto(it.readBytes())
+                    }
                 }
             }
         )
-
     }
 
     private fun startCamera() {
